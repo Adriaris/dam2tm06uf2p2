@@ -5,7 +5,7 @@ create schema dam2tm06uf2p2;
 use dam2tm06uf2p2;
 
 create table Entrada (
-	id int primary key auto_increment,
+	id int primary key auto_increment, 
     instruccion varchar(100)
 );
 
