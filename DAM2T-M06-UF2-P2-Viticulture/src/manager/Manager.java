@@ -2,6 +2,7 @@ package manager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -45,6 +46,8 @@ public class Manager {
 		getEntrada();
 		manageActions();
 		showAllCampos();
+		asignarPreciosAleatorios();
+		showTotalPrice();
 		session.close();
 	}
 
@@ -162,5 +165,35 @@ public class Manager {
 		}
 		tx.commit();
 	}
+	
+	public void asignarPreciosAleatorios() {
+	    Random random = new Random();
+	    session.beginTransaction(); // Inicia la transacción
+
+	    List<Vid> vids = session.createQuery("FROM Vid", Vid.class).getResultList(); // Recupera todas las Vids
+
+	    for (Vid vid : vids) {
+	        double precioAleatorio = 10.0 + (90.0 * random.nextDouble()); // Genera precio entre 10 y 100
+	        double precioRedondeado = Math.round(precioAleatorio * 100.0) / 100.0; // Redondea a 2 decimales
+	        vid.setPrecio(precioRedondeado); // Asigna el precio redondeado
+	        session.update(vid); // Actualiza la entidad Vid
+	    }
+
+	    session.getTransaction().commit(); // Confirma la transacción
+	}
+
+	
+	public void showTotalPrice() {
+	    // Consulta para sumar el precio de todas las Vids
+	    Double totalPrice = (Double) session.createQuery("SELECT SUM(v.precio) FROM Vid v").uniqueResult();
+
+	    // manejar el caso en que no haya Vids y totalPrice sea null
+	    if (totalPrice == null) {
+	        System.out.println("El precio total es: 0");
+	    } else {
+	        System.out.println("El precio total es: " + totalPrice);
+	    }
+	}
+
 
 }
