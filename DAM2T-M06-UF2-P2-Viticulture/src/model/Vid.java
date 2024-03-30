@@ -21,6 +21,8 @@ public class Vid {
 	private TipoVid vid;
 	@Column(name = "cantidad", nullable = true)
 	private int cantidad;
+    @Column(name = "precio")
+    private double precio; // Nuevo campo precio
 	
     @ManyToOne
     @JoinColumn(name = "id_bodega") 
@@ -48,6 +50,14 @@ public class Vid {
 
 	public void setBodega(Bodega bodega) {
 		this.bodega = bodega;
+    }
+	
+    public double getPrecio() {
+        return precio;
+    }
+
+    public void setPrecio(double precio) {
+        this.precio = precio;
     }
 		
 	
