@@ -51,4 +51,8 @@ public class Campo {
 		vids.addAll(this.vids);
 		return vids;
 	}
+
+	public Bodega getBodega() {
+		return this.bodega;
+	}
 }

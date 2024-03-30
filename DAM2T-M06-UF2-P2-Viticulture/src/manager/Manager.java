@@ -76,15 +76,42 @@ public class Manager {
 			}
 		}
 	}
+	
+	
+    public void vendimia() {
+        try {
+            // Inicia la transacción
+            tx = session.beginTransaction();
 
-	private void vendimia() {
-		this.b.getVids().addAll(this.c.getVids());
+            // Recupera todos los campos
+            List<Campo> campos = recuperarTodosLosCampos();
 
-		tx = session.beginTransaction();
-		session.save(b);
+            for (Campo campo : campos) {
+                Bodega bodega = campo.getBodega(); 
+                if (bodega != null) {
+                    // Asociar las Vid de Campo a Bodega
+                    List<Vid> vidsDelCampo = campo.getVids();
+                    for (Vid vid : vidsDelCampo) {
+                        // Añade las Vids del campo a la Bodega
+                        bodega.getVids().add(vid);
+                        // Actualiza la referencia de Vid a su nueva Bodega
+                        vid.setBodega(bodega);
+                        session.update(vid);
+                    }
+                }
+            }
+            tx.commit();
+        } catch (HibernateException e) {
+            if (tx != null) tx.rollback();
+            e.printStackTrace();
+        }
+    }
 
-		tx.commit();
-	}
+    @SuppressWarnings("unchecked")
+    private List<Campo> recuperarTodosLosCampos() {
+    	// recupero todos los objetos Campo de la base de datos y los devuelvo como una lista.
+        return session.createQuery("FROM Campo").list();
+    }
 
 	private void addVid(String[] split) {
 		Vid v = new Vid(TipoVid.valueOf(split[1].toUpperCase()), Integer.parseInt(split[2]));
