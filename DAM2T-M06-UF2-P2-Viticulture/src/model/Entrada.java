@@ -1,24 +1,40 @@
 package model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import org.bson.Document;
 
-@Entity
-@Table(name= "Entrada")
 public class Entrada {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private int id; 
+    private int id;
+    private String instruccion;
 
-	@Column(name = "instruccion")
-	private String instruccion;
-	
-	public String getInstruccion() {
-		return this.instruccion;
-	}
+    // Constructor vacío necesario para mapear documentos
+    public Entrada() {}
+
+    public Entrada(int id, String instruccion) {
+        this.id = id;
+        this.instruccion = instruccion;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getInstruccion() {
+        return instruccion;
+    }
+
+    public void setInstruccion(String instruccion) {
+        this.instruccion = instruccion;
+    }
+
+    // Método para convertir un Document a una instancia de Entrada
+    public static Entrada fromDocument(Document doc) {
+        Entrada entrada = new Entrada();
+        entrada.setId(doc.getInteger("id"));
+        entrada.setInstruccion(doc.getString("instruccion"));
+        return entrada;
+    }
 }
