@@ -24,6 +24,9 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
 
 
 
@@ -69,10 +72,10 @@ public class Manager {
 		createSession();
 		getEntrada();
 		manageActions();
-		//showAllCampos();
-		//asignarPreciosAleatorios();
-		//showTotalPrice();
-		//session.close();
+		showAllCampos();
+		asignarPreciosAleatorios();
+		showTotalPrice();
+		closeSession();
 	}
 
 	private void manageActions() {
@@ -224,44 +227,47 @@ public class Manager {
       
     }
 
-	private void showAllCampos() {
-		tx = session.beginTransaction();
-		Query q = session.createQuery("select c from Campo c");
-		List<Campo> list = q.list();
-		for (Campo c : list) {
-			System.out.println(c);
-		}
-		tx.commit();
-	}
-	
-	public void asignarPreciosAleatorios() {
-	    Random random = new Random();
-	    session.beginTransaction(); // Inicia la transacción
+    private void showAllCampos() {
+        MongoCollection<Document> campoCollection = database.getCollection("Campo");
 
-	    List<Vid> vids = session.createQuery("FROM Vid", Vid.class).getResultList(); // Recupera todas las Vids
+        try (MongoCursor<Document> cursor = campoCollection.find().iterator()) {
+            while (cursor.hasNext()) {
+                Document campoDoc = cursor.next();
+                Campo campo = convertirDocumentoACampo(campoDoc);
+                System.out.println(campo);
+            }
+        }
+    }
 
-	    for (Vid vid : vids) {
-	        double precioAleatorio = 10.0 + (90.0 * random.nextDouble()); // Genera precio entre 10 y 100
-	        double precioRedondeado = Math.round(precioAleatorio * 100.0) / 100.0; // Redondea a 2 decimales
-	        vid.setPrecio(precioRedondeado); // Asigna el precio redondeado
-	        session.update(vid); // Actualiza la entidad Vid
-	    }
+    // Método para asignar precios aleatorios a las Vids
+    public void asignarPreciosAleatorios() {
+        Random random = new Random();
+        MongoCollection<Document> vidCollection = database.getCollection("Vid");
 
-	    session.getTransaction().commit(); // Confirma la transacción
-	}
+        try (MongoCursor<Document> cursor = vidCollection.find().iterator()) {
+            while (cursor.hasNext()) {
+                Document vidDoc = cursor.next();
+                double precioAleatorio = 10.0 + (90.0 * random.nextDouble());
+                double precioRedondeado = Math.round(precioAleatorio * 100.0) / 100.0;
 
-	
-	public void showTotalPrice() {
-	    // Consulta para sumar el precio de todas las Vids
-	    Double totalPrice = (Double) session.createQuery("SELECT SUM(v.precio) FROM Vid v").uniqueResult();
+                // Actualizar el documento de la Vid con el nuevo precio
+                vidDoc.put("precio", precioRedondeado);
+                vidCollection.replaceOne(Filters.eq("_id", vidDoc.get("_id")), vidDoc);
+            }
+        }
+    }
 
-	    // manejar el caso en que no haya Vids y totalPrice sea null
-	    if (totalPrice == null) {
-	        System.out.println("El precio total es: 0");
-	    } else {
-	        System.out.println("El precio total es: " + totalPrice);
-	    }
-	}
+ // Método para mostrar el precio total de todas las Vids
+    public void showTotalPrice() {
+        MongoCollection<Document> vidCollection = database.getCollection("Vid");
+
+        List<Document> pipeline = new ArrayList<>();
+        pipeline.add(new Document("$group", new Document("_id", null).append("totalPrice", new Document("$sum", "$precio"))));
+
+        Document result = vidCollection.aggregate(pipeline).first();
+        double totalPrice = (result != null) ? result.getDouble("totalPrice") : 0.0;
+        System.out.println("El precio total es: " + totalPrice);
+    }
 
 
 }
