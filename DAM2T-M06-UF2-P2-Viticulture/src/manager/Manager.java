@@ -121,9 +121,7 @@ public class Manager {
 	                    bodega.getVids().add(vid);
 	                    // Actualiza la referencia de Vid a su nueva Bodega
 	                    
-	                    // Esto no es necesario en MongoDB ya que no hay relaciones directas
-	                    // entre documentos como en SQL. Sin embargo, si necesitas hacer algo
-	                    // con los documentos de los Vids en MongoDB, debes implementarlo aquí.
+	                   
 	                }
 	            }
 	        }
@@ -145,8 +143,6 @@ public class Manager {
 	    try (MongoCursor<Document> cursor = campoCollection.find().iterator()) {
 	        while (cursor.hasNext()) {
 	            Document campoDoc = cursor.next();
-	            // Convertir el documento a un objeto Campo (si es necesario)
-	            // y agregarlo a la lista de campos
 	            Campo campo = convertirDocumentoACampo(campoDoc);
 	            campos.add(campo);
 	        }
@@ -165,10 +161,6 @@ public class Manager {
 	    // Crear una instancia de Campo con la Bodega creada
 	    Campo campo = new Campo(bodega);
 
-	    // Si es necesario, puedes asignar un ID al campo basado en el documento de MongoDB
-	    // int idCampo = campoDoc.getInteger("_id");
-	    // campo.setId(idCampo);
-
 	    return campo;
 	}
 
@@ -185,9 +177,7 @@ public class Manager {
         
         // Asociar el Vid al Campo
         c.addVid(v);
-        // Puedes actualizar el documento del Campo en MongoDB si es necesario
-        // MongoCollection<Document> campoCollection = database.getCollection("Campo");
-        // campoCollection.updateOne(new Document("_id", c.getId()), new Document("$push", new Document("vids", vidDoc.getObjectId("_id"))));
+     
     }
 
 
@@ -199,8 +189,7 @@ public class Manager {
 	    Document campoDoc = new Document("bodega", b.getNombre());
 	    campoCollection.insertOne(campoDoc);
 	    
-	    // Puedes recuperar el ID del documento insertado si lo necesitas
-	    // int id = campoDoc.getInteger("_id");
+
 	}
 
 	private void addBodega(String[] split) {
@@ -211,15 +200,14 @@ public class Manager {
 	    Document bodegaDoc = new Document("nombre", b.getNombre());
 	    bodegaCollection.insertOne(bodegaDoc);
 	    
-	    // Puedes recuperar el ID del documento insertado si lo necesitas
-	    // int id = bodegaDoc.getInteger("_id");
+
+
 	}
 
 
     private void getEntrada() {
   
-        MongoCollection<Document> collection = database.getCollection("Entrada"); // Obtener la colección aquí
-
+        MongoCollection<Document> collection = database.getCollection("Entrada"); 
         try (MongoCursor<Document> cursor = collection.find().iterator()) {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
