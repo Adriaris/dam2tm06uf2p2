@@ -1,57 +1,47 @@
 package model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
+import org.bson.types.ObjectId;
 
 import utils.TipoVid;
 
-@Entity
-@Table(name= "vid")
 public class Vid {
-	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private int id;
-	@Column(name = "tipo_vid", nullable = true)
-	private TipoVid vid;
-	@Column(name = "cantidad", nullable = true)
-	private int cantidad;
-    @Column(name = "precio")
-    private double precio; // Nuevo campo precio
-	
-    @ManyToOne
-    @JoinColumn(name = "id_bodega") 
-    private Bodega bodega;
-	
-	public Vid() {}
-		
-	public Vid(TipoVid vid, int cantidad) {
-		this.vid = vid;
-		this.cantidad = cantidad;
-	}
-	public int getId() {
-		return this.id;
-	}
-	public TipoVid getVid() {
-		return vid;
-	}
-	public int getCantidad() {
-		return cantidad;
-	}
-	@Override
-	public String toString() {
-		return "Vid [vid=" + (vid.equals("0") ? "blanca" : "negra")  + ", cantidad=" + cantidad + "]";
-	}
+    private ObjectId id;
+    private TipoVid vid;
+    private int cantidad;
+    private double precio; 
+    private ObjectId id_bodega; 
 
-	public void setBodega(Bodega bodega) {
-		this.bodega = bodega;
+    public Vid() {}
+
+    public Vid(TipoVid vid, int cantidad) {
+        this.vid = vid;
+        this.cantidad = cantidad;
     }
-	
+
+    public ObjectId getId() {
+        return id;
+    }
+
+    public void setId(ObjectId id) {
+        this.id = id;
+    }
+
+    public TipoVid getVid() {
+        return vid;
+    }
+
+    public void setVid(TipoVid vid) {
+        this.vid = vid;
+    }
+
+    public int getCantidad() {
+        return cantidad;
+    }
+
+    public void setCantidad(int cantidad) {
+        this.cantidad = cantidad;
+    }
+
     public double getPrecio() {
         return precio;
     }
@@ -59,6 +49,17 @@ public class Vid {
     public void setPrecio(double precio) {
         this.precio = precio;
     }
-		
-	
+
+    public ObjectId getId_bodega() {
+        return id_bodega;
+    }
+
+    public void setId_bodega(ObjectId id_bodega) {
+        this.id_bodega = id_bodega;
+    }
+
+    @Override
+    public String toString() {
+        return "Vid [vid=" + (vid.equals(TipoVid.BLANCA) ? "blanca" : "negra")  + ", cantidad=" + cantidad + "]";
+    }
 }

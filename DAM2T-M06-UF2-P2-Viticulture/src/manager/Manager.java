@@ -51,11 +51,7 @@ public class Manager {
 	}
 	 
 	    private void createSession() {
-	    	Configuration configuration = new Configuration().configure("hibernate.cfg.xml");
-			org.hibernate.SessionFactory sessionFactory = new Configuration().configure().buildSessionFactory();
-			session = sessionFactory.openSession();
-	    	
-	    	
+
 	        // Establece la conexión a la base de datos
 	        String uri = "mongodb://localhost:27017";
 	        mongoClient = MongoClients.create(uri);
@@ -73,10 +69,10 @@ public class Manager {
 		createSession();
 		getEntrada();
 		manageActions();
-		showAllCampos();
-		asignarPreciosAleatorios();
-		showTotalPrice();
-		session.close();
+		//showAllCampos();
+		//asignarPreciosAleatorios();
+		//showTotalPrice();
+		//session.close();
 	}
 
 	private void manageActions() {
@@ -109,73 +105,116 @@ public class Manager {
 	}
 	
 	
-    public void vendimia() {
-        try {
-            // Inicia la transacción
-            tx = session.beginTransaction();
+	public void vendimia() {
+	    try {
 
-            // Recupera todos los campos
-            List<Campo> campos = recuperarTodosLosCampos();
+	        // Recupera todos los campos
+	        List<Campo> campos = recuperarTodosLosCampos();
 
-            for (Campo campo : campos) {
-                Bodega bodega = campo.getBodega(); 
-                if (bodega != null) {
-                    // Asociar las Vid de Campo a Bodega
-                    List<Vid> vidsDelCampo = campo.getVids();
-                    for (Vid vid : vidsDelCampo) {
-                        // Añade las Vids del campo a la Bodega
-                        bodega.getVids().add(vid);
-                        // Actualiza la referencia de Vid a su nueva Bodega
-                        vid.setBodega(bodega);
-                        session.update(vid);
-                    }
-                }
-            }
-            tx.commit();
-        } catch (HibernateException e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Campo> recuperarTodosLosCampos() {
-    	// recupero todos los objetos Campo de la base de datos y los devuelvo como una lista.
-        return session.createQuery("FROM Campo").list();
-    }
-
-	private void addVid(String[] split) {
-		Vid v = new Vid(TipoVid.valueOf(split[1].toUpperCase()), Integer.parseInt(split[2]));
-		tx = session.beginTransaction();
-		session.save(v);
-
-		c.addVid(v);
-		session.save(c);
-
-		tx.commit();
-
+	        for (Campo campo : campos) {
+	            Bodega bodega = campo.getBodega(); 
+	            if (bodega != null) {
+	                // Asociar las Vid de Campo a Bodega
+	                List<Vid> vidsDelCampo = campo.getVids();
+	                for (Vid vid : vidsDelCampo) {
+	                    // Añade las Vids del campo a la Bodega
+	                    bodega.getVids().add(vid);
+	                    // Actualiza la referencia de Vid a su nueva Bodega
+	                    
+	                    // Esto no es necesario en MongoDB ya que no hay relaciones directas
+	                    // entre documentos como en SQL. Sin embargo, si necesitas hacer algo
+	                    // con los documentos de los Vids en MongoDB, debes implementarlo aquí.
+	                }
+	            }
+	        }
+	      
+	    } catch (HibernateException e) {
+	        if (tx != null) tx.rollback();
+	        e.printStackTrace();
+	    }
 	}
 
+
+	private List<Campo> recuperarTodosLosCampos() {
+	    List<Campo> campos = new ArrayList<>();
+
+	    // Obtener la colección de campos en MongoDB
+	    MongoCollection<Document> campoCollection = database.getCollection("Campo");
+
+	    // Recuperar todos los documentos de la colección
+	    try (MongoCursor<Document> cursor = campoCollection.find().iterator()) {
+	        while (cursor.hasNext()) {
+	            Document campoDoc = cursor.next();
+	            // Convertir el documento a un objeto Campo (si es necesario)
+	            // y agregarlo a la lista de campos
+	            Campo campo = convertirDocumentoACampo(campoDoc);
+	            campos.add(campo);
+	        }
+	    }
+
+	    return campos;
+	}
+	
+	private Campo convertirDocumentoACampo(Document campoDoc) {
+	    // Obtener los datos del documento
+	    String nombreBodega = campoDoc.getString("bodega");
+
+	    // Crear una instancia de Bodega con el nombre obtenido
+	    Bodega bodega = new Bodega(nombreBodega);
+
+	    // Crear una instancia de Campo con la Bodega creada
+	    Campo campo = new Campo(bodega);
+
+	    // Si es necesario, puedes asignar un ID al campo basado en el documento de MongoDB
+	    // int idCampo = campoDoc.getInteger("_id");
+	    // campo.setId(idCampo);
+
+	    return campo;
+	}
+
+
+
+    private void addVid(String[] split) {
+        Vid v = new Vid(TipoVid.valueOf(split[1].toUpperCase()), Integer.parseInt(split[2]));
+        
+        // Insertar el Vid en MongoDB
+        MongoCollection<Document> vidCollection = database.getCollection("Vid");
+        Document vidDoc = new Document("tipo_vid", split[1].toUpperCase())
+                        .append("cantidad", Integer.parseInt(split[2]));
+        vidCollection.insertOne(vidDoc);
+        
+        // Asociar el Vid al Campo
+        c.addVid(v);
+        // Puedes actualizar el documento del Campo en MongoDB si es necesario
+        // MongoCollection<Document> campoCollection = database.getCollection("Campo");
+        // campoCollection.updateOne(new Document("_id", c.getId()), new Document("$push", new Document("vids", vidDoc.getObjectId("_id"))));
+    }
+
+
 	private void addCampo(String[] split) {
-		c = new Campo(b);
-		tx = session.beginTransaction();
-
-		int id = (Integer) session.save(c);
-		c = session.get(Campo.class, id);
-
-		tx.commit();
+	    c = new Campo(b);
+	    
+	    // Insertar el campo en MongoDB
+	    MongoCollection<Document> campoCollection = database.getCollection("Campo");
+	    Document campoDoc = new Document("bodega", b.getNombre());
+	    campoCollection.insertOne(campoDoc);
+	    
+	    // Puedes recuperar el ID del documento insertado si lo necesitas
+	    // int id = campoDoc.getInteger("_id");
 	}
 
 	private void addBodega(String[] split) {
-		b = new Bodega(split[1]);
-		tx = session.beginTransaction();
-
-		int id = (Integer) session.save(b);
-		b = session.get(Bodega.class, id);
-
-		tx.commit();
-
+	    b = new Bodega(split[1]);
+	    
+	    // Insertar la bodega en MongoDB
+	    MongoCollection<Document> bodegaCollection = database.getCollection("Bodega");
+	    Document bodegaDoc = new Document("nombre", b.getNombre());
+	    bodegaCollection.insertOne(bodegaDoc);
+	    
+	    // Puedes recuperar el ID del documento insertado si lo necesitas
+	    // int id = bodegaDoc.getInteger("_id");
 	}
+
 
     private void getEntrada() {
   
