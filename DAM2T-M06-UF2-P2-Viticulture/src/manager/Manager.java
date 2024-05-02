@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.bson.Document;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
@@ -16,6 +17,16 @@ import model.Entrada;
 import model.Vid;
 import utils.TipoVid;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+
+
+
 public class Manager {
 	private static Manager manager;
 	private ArrayList<Entrada> entradas;
@@ -23,6 +34,10 @@ public class Manager {
 	private Transaction tx;
 	private Bodega b;
 	private Campo c;
+	
+    private MongoClient mongoClient;
+    private MongoDatabase database;
+    private MongoCollection<org.bson.Document> collection;
 
 	private Manager() {
 		this.entradas = new ArrayList<>();
@@ -34,12 +49,25 @@ public class Manager {
 		}
 		return manager;
 	}
+	 
+	    private void createSession() {
+	    	Configuration configuration = new Configuration().configure("hibernate.cfg.xml");
+			org.hibernate.SessionFactory sessionFactory = new Configuration().configure().buildSessionFactory();
+			session = sessionFactory.openSession();
+	    	
+	    	
+	        // Establece la conexión a la base de datos
+	        String uri = "mongodb://localhost:27017";
+	        mongoClient = MongoClients.create(uri);
+	        database = mongoClient.getDatabase("dam2tm06uf2p2");
+	    }
 
-	private void createSession() { // load configuration file
-		Configuration configuration = new Configuration().configure("hibernate.cfg.xml");
-		org.hibernate.SessionFactory sessionFactory = new Configuration().configure().buildSessionFactory();
-		session = sessionFactory.openSession();
-	}
+	    public void closeSession() {
+	        if (mongoClient != null) {
+	            mongoClient.close();
+	            System.out.println("MongoDB connection closed.");
+	        }
+	    }
 
 	public void init() {
 		createSession();
@@ -149,12 +177,25 @@ public class Manager {
 
 	}
 
-	private void getEntrada() {
-		tx = session.beginTransaction();
-		Query q = session.createQuery("select e from Entrada e");
-		this.entradas.addAll(q.list());
-		tx.commit();
-	}
+    private void getEntrada() {
+  
+        MongoCollection<Document> collection = database.getCollection("Entrada"); // Obtener la colección aquí
+
+        try (MongoCursor<Document> cursor = collection.find().iterator()) {
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                Entrada entrada = Entrada.fromDocument(doc); // Convertir el documento a un objeto Entrada
+                entradas.add(entrada);
+            }
+        }
+
+        // Mostrar las entradas leídas
+        for (Entrada entrada : entradas) {
+            System.out.println("ID: " + entrada.getId() + ", Instrucción: " + entrada.getInstruccion());
+        }
+
+      
+    }
 
 	private void showAllCampos() {
 		tx = session.beginTransaction();
